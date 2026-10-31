@@ -1,0 +1,4 @@
+# Preserve source/resource bytes and PowerShell UTF-8 BOMs in archives and clones.
+* -text
+*.png binary
+*.ico binary

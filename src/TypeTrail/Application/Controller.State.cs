@@ -1,0 +1,104 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading;
+using System.Web.Script.Serialization;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Interop;
+using System.Windows.Markup;
+using System.Windows.Media;
+using System.Windows.Threading;
+using Forms = System.Windows.Forms;
+using Drawing = System.Drawing;
+
+namespace TypeTrail {
+    // Shared state has a single dispatcher owner. Input timing and callback ordering are unchanged.
+    internal sealed partial class Controller : IDisposable {
+        Window window;
+        readonly Dispatcher ui;
+        bool closingPanel;
+        string pendingNotice;
+        readonly DiskStore disk;
+        readonly Settings settings;
+        readonly History history;
+        readonly NativeCapture nativeCapture = new NativeCapture();
+        readonly DirectInputHistory directHistory;
+        readonly FieldAdmission fieldAdmission=new FieldAdmission();
+        readonly KeyboardActivityLedger keyboardActivity=new KeyboardActivityLedger();
+        readonly ImeConversionEvidence imeConversions=new ImeConversionEvidence();
+        readonly Dictionary<long,TypingEvidence> fieldTyping=new Dictionary<long,TypingEvidence>();
+        readonly Dictionary<string,string> journalFields=new Dictionary<string,string>();
+        readonly Dictionary<string,long> journalEpochs=new Dictionary<string,long>();
+        readonly Dictionary<long,string> fieldTokens=new Dictionary<long,string>();
+        long protectionEpoch;
+        IntPtr protectedWindow;
+        DateTime nativeTraced;
+        readonly Forms.NotifyIcon tray;
+        readonly Forms.ToolStripMenuItem pauseMenu;
+        readonly JavaScriptSerializer json = new JavaScriptSerializer { MaxJsonLength = 8000000 };
+        readonly DispatcherTimer tick, toastTimer;
+        readonly EventWaitHandle showEvent, exitEvent, healthEvent;
+        DateTime healthDeadline, nextHealthReport;
+        readonly EventWaitHandle[] languageEvents = new EventWaitHandle[3];
+        readonly string exe;
+        readonly int pid;
+        readonly bool liveCapture;
+        readonly HwndSource source;
+        readonly KeyboardMonitor keyboardMonitor;
+        readonly TypingEvidence typing = new TypingEvidence();
+        IntPtr observedWindow, observedFocus;
+        int observedObject, observedChild;
+        bool haveFocusObject;
+        bool focusDirty = true;
+        IntPtr previousWindow, lastInputWindow;
+        bool drainingKeyboard;
+        long lastInput;
+        ulong lastInputTick;
+        uint lastInputProcessId;
+        IntPtr lastInputTarget;
+        long lastImeCommit;
+        long inputSerial, focusSerial, inputFocusSerial;
+        bool inputCanInsert;
+        int epoch;
+        int requestId, popupFlushId;
+        bool popupPending, settingsAfterPopup, listDirty;
+        bool refreshingVersions, nativeFocusPending;
+        string pendingPaste;
+        readonly PasteHintAssembler pasteHints = new PasteHintAssembler();
+        PasteBaseline nextPasteBaseline, assemblingPasteBaseline, pendingPasteBaseline;
+        int pendingPasteConsumed;
+        long pendingPasteFocus, pendingPasteSerial;
+        DateTime pendingPasteAt;
+        sealed class RetiredTyping { public readonly TypingEvidence Evidence = new TypingEvidence(); public DateTime At = DateTime.UtcNow; }
+        readonly Dictionary<IntPtr, RetiredTyping> retiredTyping = new Dictionary<IntPtr, RetiredTyping>();
+        bool exitPending;
+        int exitFlushId;
+        DateTime exitDeadline;
+        DateTime panelOpenedAt;
+        string captureState = "idle";
+        int observedKeyboardDropped;
+        string displayedCaptureState, displayedCaptureStatus, displayedCaptureWarning;
+        DateTime popupDeadline;
+        Process worker;
+        StreamWriter workerInput;
+        bool pending, disposed, dirty, recordingHotkey, refreshing, migrationBlocked;
+        DateTime requestedAt, lastRequest, lastSave, lastUi, clearArmed;
+        DateTime nextHistoryRetry, lastSuccessfulHistorySave, nextHistoryState;
+        int historyRetryCount, recordsAtLoad;
+        bool historyRestoreCancelled;
+        bool initialHistoryReadFailed,firstShownFilter;
+        int firstShownRecords=-1;
+        uint candidateModifiers, candidateKey;
+        string captureStatus = L.T("到输入框打字后，这里会显示记录状态");
+        Entry deleted;
+
+    
+    }
+}
