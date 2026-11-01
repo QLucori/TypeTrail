@@ -138,7 +138,7 @@ namespace TypeTrail {
                     }
                     if (key == 32 || key == 13 || (key >= 48 && key <= 57)) {
                         if ((input.Layout.ToInt64() & 0x3FF) == 4) lastImeCommit = lastInput;
-                        if(!ctrl && !alt && !win && !fieldAdmission.IsDenied(protectionEpoch))
+                        if(!ctrl && !alt && !win && (key!=13 || !shift) && !fieldAdmission.IsDenied(protectionEpoch))
                             imeConversions.Select(input.ProcessId,unchecked((ulong)input.Window.ToInt64()),unchecked((ulong)lastInputTarget.ToInt64()),protectionEpoch,input.Tick,input.Layout,key,typing.Text);
                     }
                 }
@@ -219,19 +219,24 @@ namespace TypeTrail {
             if(!current && retiredTyping.TryGetValue(inputRoot,out retired) && (DateTime.UtcNow-retired.At).TotalSeconds<10)evidence=retired.Evidence;
             bool pasteEvidence = current && pendingPaste != null && pendingPasteFocus == focusSerial &&
                 (DateTime.UtcNow-pendingPasteAt).TotalSeconds <= 3;
-            int consumed;
+            int consumed=0;
             bool selectorConsumed=false;
-            bool verified = NativeInputEvidence.Verify(input, pasteEvidence?pendingPaste:(evidence==null?"":evidence.Text), out consumed);
+            uint owner;Native.GetWindowThreadProcessId(inputRoot,out owner);
+            bool activity=evidence!=null && keyboardActivity.Has(owner,unchecked((ulong)inputRoot.ToInt64()),input.Window,input.FieldIdentity,input.Tick,fieldAdmission.FieldFor,fieldAdmission.IsDenied);
+            bool verified=!pasteEvidence && evidence!=null && imeConversions.AcceptLiteral(input,owner,unchecked((ulong)inputRoot.ToInt64()),admittedEpoch,activity,true);
+            if(verified) {selectorConsumed=true;evidence.ConsumeBefore(input.Tick);}
+            else verified=NativeInputEvidence.Verify(input, pasteEvidence?pendingPaste:(evidence==null?"":evidence.Text), out consumed);
             if (!verified && pasteEvidence) {
                 pasteEvidence = false;
                 verified = NativeInputEvidence.Verify(input, evidence==null?"":evidence.Text, out consumed);
             }
             if(!verified && evidence!=null) {
-                uint owner;Native.GetWindowThreadProcessId(inputRoot,out owner);
-                bool activity=keyboardActivity.Has(owner,unchecked((ulong)inputRoot.ToInt64()),input.Window,input.FieldIdentity,input.Tick,fieldAdmission.FieldFor,fieldAdmission.IsDenied);
                 if(imeConversions.AcceptSeparator(input,owner,unchecked((ulong)inputRoot.ToInt64()),admittedEpoch)) {
                     verified=true;consumed=0;selectorConsumed=true;
                     Trace("commit literal-space pid="+input.ProcessId+" flags="+input.Flags+" serial="+input.InputSerial);
+                } else if(imeConversions.AcceptLiteral(input,owner,unchecked((ulong)inputRoot.ToInt64()),admittedEpoch,activity)) {
+                    verified=true;consumed=0;selectorConsumed=true;evidence.ConsumeBefore(input.Tick);
+                    Trace("commit literal-ime pid="+input.ProcessId+" flags="+input.Flags+" serial="+input.InputSerial+" length="+(input.Text??"").Length);
                 } else if(imeConversions.Accept(input,owner,unchecked((ulong)inputRoot.ToInt64()),admittedEpoch,activity)) {
                     verified=true;consumed=0;selectorConsumed=true;evidence.ConsumeBefore(input.Tick);
                     Trace("commit converted-ime pid="+input.ProcessId+" flags="+input.Flags+" serial="+input.InputSerial+" length="+(input.Text??"").Length);
@@ -254,8 +259,7 @@ namespace TypeTrail {
             }
             if (evidence!=null && (input.Flags & (2 | 8)) != 0) evidence.ConsumeBefore(input.Tick);
             if((input.Flags&16)==0 && input.Kind==1) {
-                IntPtr root=Native.GetAncestor(new IntPtr(unchecked((long)input.Window)),2);uint owner;Native.GetWindowThreadProcessId(root,out owner);
-                keyboardActivity.Consume(owner,unchecked((ulong)root.ToInt64()),input.Window,input.FieldIdentity,admittedEpoch,input.Tick,fieldAdmission.FieldFor,0,false);
+                keyboardActivity.Consume(owner,unchecked((ulong)inputRoot.ToInt64()),input.Window,input.FieldIdentity,admittedEpoch,input.Tick,fieldAdmission.FieldFor,0,false);
             }
             if (directHistory.Apply(input, sourceName)) { dirty = true; listDirty = true; captureStatus = sourceName + L.T(" · 已记录上屏文字"); captureState = "ok";Trace("commit saved pid="+input.ProcessId+" flags="+input.Flags+" length="+(input.Text??"").Length+" entries="+history.Entries.Count); }
         }

@@ -31,12 +31,16 @@
 
 ## 界面预览
 
-以下预览使用应用的界面资源生成，文字均为演示内容，不含个人输入记录。
+删掉一半、全部删空，再试一次网页刷新后找回草稿。以下是剪辑后的操作示例，使用演示文字和本机网页，不含个人输入记录。
 
-![拾字深色界面：从输入历史找回给 AI 的想法描述](docs/images/typetrail-dark.png)
+![拾字操作演示：删除部分文字、保留旧稿，以及网页刷新后找回草稿](docs/images/typetrail-demo-zh-CN.gif)
+
+[观看视频](https://github.com/QLucori/TypeTrail/releases/download/v1.0.1/typetrail-demo-zh-CN.mp4)
 
 <details>
-<summary>查看浅色界面</summary>
+<summary>查看深色和浅色界面截图</summary>
+
+![拾字深色界面：从输入历史找回给 AI 的想法描述](docs/images/typetrail-dark.png)
 
 ![拾字浅色界面，展示相同的示例输入记录](docs/images/typetrail-light.png)
 
@@ -44,7 +48,7 @@
 
 ## 安装和使用
 
-从本仓库的 **Releases** 页面下载 `TypeTrail-Setup-1.0.0-x64.exe`。需要 **Windows 10 / 11 x64**，也支持部分 32 位应用中的输入。本次只发布 Windows 版。
+从本仓库的 **Releases** 页面下载 `TypeTrail-Setup-1.0.1-x64.exe`。需要 **Windows 10 / 11 x64**，也支持部分 32 位应用中的输入。本次只发布 Windows 版。
 
 运行需要 **.NET Framework 4.8 或更高版本**。如果安装器提示缺少运行环境，请先安装 [Microsoft 官方运行时](https://dotnet.microsoft.com/download/dotnet-framework/net48)，再运行拾字安装包。
 
@@ -162,7 +166,7 @@ powershell.exe -NoProfile -File .\build.ps1
 powershell.exe -NoProfile -File .\installer\build-installer.ps1 -CompilerPath C:\path\to\ISCC.exe
 ```
 
-输出为 `dist/TypeTrail-Setup-1.0.0-x64.exe`。如需指定应用编译产物所在目录，
+输出为 `dist/TypeTrail-Setup-1.0.1-x64.exe`。如需指定应用编译产物所在目录，
 传入 `-PayloadDirectory`；安装包输出目录使用 `-OutputDirectory` 指定。
 中间文件位于 `.build/installer/`。
 

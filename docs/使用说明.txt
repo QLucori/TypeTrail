@@ -1,6 +1,6 @@
-﻿拾字 1.0.0 — Windows x64（兼容 32 位输入程序）
+﻿拾字 1.0.1 — Windows x64（兼容 32 位输入程序）
 
-安装 TypeTrail-Setup-1.0.0-x64.exe，或运行免安装目录的 TypeTrail.exe。
+安装 TypeTrail-Setup-1.0.1-x64.exe，或运行免安装目录的 TypeTrail.exe。
 需要 .NET Framework 4.8 或更高版本；缺少时请先安装 Microsoft 官方运行环境。
 Alt + `（Esc 下方、数字 1 左边）打开或收起历史，也可点击托盘图标。
 主界面太阳/月亮按钮切换深浅色；地球按钮下拉选择简体中文或 English。

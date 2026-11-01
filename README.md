@@ -31,12 +31,16 @@ The current release is for Windows. You can use it in Chinese or English, search
 
 ## Preview
 
-These previews use the app's interface resources and sample text. They contain no personal input history.
+Delete part of a draft, clear it, then recover it after a page refresh. This edited walkthrough uses sample text and a local demo page, with no personal input history.
 
-![TypeTrail in dark mode, showing a recovered draft for an AI chat](docs/images/typetrail-en-dark-1.0.0.png)
+![TypeTrail walkthrough: partial deletion, earlier versions and recovery after a page refresh](docs/images/typetrail-demo-en.gif)
+
+[Watch the video](https://github.com/QLucori/TypeTrail/releases/download/v1.0.1/typetrail-demo-en.mp4)
 
 <details>
-<summary>View light mode</summary>
+<summary>View screenshots in dark and light mode</summary>
+
+![TypeTrail in dark mode, showing a recovered draft for an AI chat](docs/images/typetrail-en-dark-1.0.0.png)
 
 ![TypeTrail in light mode, showing the same sample input history](docs/images/typetrail-en-light-1.0.0.png)
 
@@ -44,7 +48,7 @@ These previews use the app's interface resources and sample text. They contain n
 
 ## Install and use
 
-Download `TypeTrail-Setup-1.0.0-x64.exe` from this repository's **Releases** page. You need **Windows 10 / 11 x64**. Input from supported 32-bit apps is included. This release is for Windows only.
+Download `TypeTrail-Setup-1.0.1-x64.exe` from this repository's **Releases** page. You need **Windows 10 / 11 x64**. Input from supported 32-bit apps is included. This release is for Windows only.
 
 You also need **.NET Framework 4.8 or later**. If the installer says it's missing, install the [official Microsoft runtime](https://dotnet.microsoft.com/download/dotnet-framework/net48), then run the TypeTrail installer again.
 
@@ -173,7 +177,7 @@ for missing, duplicate and unlisted files.
 powershell.exe -NoProfile -File .\installer\build-installer.ps1 -CompilerPath C:\path\to\ISCC.exe
 ```
 
-Output: `dist/TypeTrail-Setup-1.0.0-x64.exe`. To use a different app output folder,
+Output: `dist/TypeTrail-Setup-1.0.1-x64.exe`. To use a different app output folder,
 pass `-PayloadDirectory`; use `-OutputDirectory` for the installer destination.
 Intermediate files are kept in `.build/installer/`.
 

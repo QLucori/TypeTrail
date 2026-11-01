@@ -8,6 +8,7 @@ namespace TypeTrail {
         sealed class Permit {
             public uint Pid,Serial,Thread;public ulong Root,Focus,Tick;public long Epoch;
             public int Budget,Used,LastChunk;public bool Started,Space,SpaceUsed,CanConvert;
+            public string Literal;public bool LiteralAfterReturn;
         }
         readonly List<Permit> permits=new List<Permit>();
         public void Clear() {permits.Clear();}
@@ -20,7 +21,30 @@ namespace TypeTrail {
             if((letters==0 && key!=32) || tick==0)return;
             permits.RemoveAll(p=>tick>=p.Tick && tick-p.Tick>5000);
             if(permits.Count>=32)permits.RemoveAt(0);
-            permits.Add(new Permit {Pid=pid,Root=root,Focus=focus,Epoch=epoch,Tick=tick,Budget=Math.Min(4096,letters*2+2),Space=key==32,CanConvert=asian && letters>0});
+            permits.Add(new Permit {Pid=pid,Root=root,Focus=focus,Epoch=epoch,Tick=tick,Budget=Math.Min(4096,letters*2+2),Space=key==32,CanConvert=asian && letters>0,Literal=asian && key==13?LiteralWord(hint):null,LiteralAfterReturn=hint!=null && hint.IndexOf('\n')>=0 && hint.IndexOf('\n')<hint.Length-1});
+        }
+        static string LiteralWord(string hint) {
+            if(String.IsNullOrEmpty(hint) || !hint.EndsWith("\n",StringComparison.Ordinal))return null;
+            int end=hint.Length-1,start=end;
+            while(start>0 && hint[start-1]>32 && hint[start-1]<127)start--;
+            return start==end?null:hint.Substring(start,end-start);
+        }
+        public bool AcceptLiteral(CommittedInput input,uint rootPid,ulong root,long epoch,bool actualActivity,bool requirePriorReturn=false) {
+            if(!actualActivity || input.Kind!=1 || (input.Flags&(4|8|1024))!=(4|1024) || input.InputSerial==0 || String.IsNullOrEmpty(input.Text))return false;
+            // Return can commit a phonetic composition as literal English. Its
+            // key hint is not an inserted newline. A later plain TSF range may
+            // also include the preceding word or a provider paragraph marker.
+            // Admit only the exact word selected by that same field's Return.
+            string candidate=input.Text.TrimEnd('\r','\n','\t');
+            for(int i=permits.Count-1;i>=0;i--) {
+                Permit p=permits[i];
+                if(!Same(p,input,rootPid,root,epoch) || p.Literal==null || p.Started || (requirePriorReturn && !p.LiteralAfterReturn))continue;
+                int start=candidate.Length-p.Literal.Length;
+                if(start<0 || !candidate.EndsWith(p.Literal,StringComparison.Ordinal) || (start>0 && !Char.IsWhiteSpace(candidate[start-1])))continue;
+                input.Text=p.Literal;p.Literal=null;p.Started=true;p.CanConvert=false;p.SpaceUsed=true;
+                return true;
+            }
+            return false;
         }
         static bool Converted(string value) {
             bool found=false;
@@ -53,6 +77,12 @@ namespace TypeTrail {
         }
         public void ObserveAccepted(CommittedInput input,uint rootPid,ulong root,long epoch) {
             if(input.Kind!=1)return;
+            for(int i=permits.Count-1;i>=0;i--) {
+                Permit p=permits[i];
+                if(p.Literal!=null && Same(p,input,rootPid,root,epoch) && (input.Text??"").TrimEnd('\r','\n','\t')==p.Literal) {
+                    p.Literal=null;p.CanConvert=false;p.SpaceUsed=true;break;
+                }
+            }
             if(input.Text==" ") {
                 foreach(var p in permits)if(Same(p,input,rootPid,root,epoch) && p.Space && !p.SpaceUsed) {p.SpaceUsed=true;p.CanConvert=false;return;}
             } else if((input.Flags&(2|8))!=0 && Converted(input.Text)) {
