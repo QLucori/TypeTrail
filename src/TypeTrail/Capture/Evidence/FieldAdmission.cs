@@ -14,7 +14,7 @@ namespace TypeTrail {
         sealed class Scope {
             public long Id;
             public uint Pid;
-            public ulong Root,Focus,Start,End,Checked;
+            public ulong Root,Focus,Start,End,Checked,DeferredUntil;
             public bool Known,Allowed;
             public string Field;
         }
@@ -30,6 +30,23 @@ namespace TypeTrail {
             Trace("admission "+reason+" epoch="+(scope==null?0:scope.Id)+" rootPid="+(scope==null?0:scope.Pid)+" root="+(scope==null?0:scope.Root)+" focus="+(scope==null?0:scope.Focus)+" known="+(scope!=null && scope.Known)+" allow="+(scope!=null && scope.Allowed)+" checked="+(scope==null?0:scope.Checked)+(input==null?"":" pid="+input.ProcessId+" window="+input.Window+" tick="+input.Tick+" flags="+input.Flags+" serial="+input.InputSerial+" length="+(input.Text??"").Length));
         }
         public bool HasPending {get{return pending.Count>0;}}
+        public void DeferPending(long epoch,ulong now) {
+            Scope scope=scopes.FirstOrDefault(s=>s.Id==epoch);
+            if(scope==null || scope.End!=0 || (scope.Known && !scope.Allowed) || scope.DeferredUntil!=0)return;
+            Pending first=pending.FirstOrDefault(p=>p.Scope==scope && !p.NativeSafe && p.Item.Input.Kind!=3 && !Confirmed(p));
+            if(first==null)return;
+            // A stalled UIA provider can delay every client's metadata. Keep
+            // only this uninterrupted field's actual input, bounded in memory.
+            // Repeated retries do not renew the deadline or grant permission.
+            ulong tick=first.Item.Input.Tick;
+            if(tick>now || now-tick>60000)return;
+            scope.DeferredUntil=tick>UInt64.MaxValue-60000?UInt64.MaxValue:tick+60000;
+            Note("defer until="+scope.DeferredUntil,scope);
+        }
+        public bool IsDeferred(long epoch,ulong now) {
+            return pending.Any(p=>p.Scope.Id==epoch && p.Scope.End==0 && p.Scope.DeferredUntil!=0 && now<=p.Scope.DeferredUntil &&
+                now>=p.Item.Input.Tick && now-p.Item.Input.Tick>=1000 && !(p.Scope.Known && !p.Scope.Allowed) && !p.NativeSafe && !Confirmed(p));
+        }
         public bool Lost {get{return lost;}}
         public bool TakeLoss() {bool result=lost;lost=false;return result;}
         public bool IsDenied(long epoch) {var scope=scopes.FirstOrDefault(s=>s.Id==epoch);return scope!=null && scope.Known && !scope.Allowed;}
@@ -81,7 +98,7 @@ namespace TypeTrail {
                 scope.End=tick;
                 scope=new Scope {Id=++serial,Pid=pid,Root=root,Focus=scope.Focus,Start=tick};scopes.Add(scope);
             }
-            scope.Known=true;scope.Allowed=allowed;scope.Checked=Math.Max(scope.Checked,tick);scope.Field=field;
+            scope.Known=true;scope.Allowed=allowed;scope.Checked=Math.Max(scope.Checked,tick);scope.Field=field;scope.DeferredUntil=0;
             Note("resolve",scope);
             TrimScopes();
             return scope.Id;
@@ -134,7 +151,8 @@ namespace TypeTrail {
                 string key=scope.Pid+":"+scope.Root;
                 bool denied=scope.Known && !scope.Allowed;
                 bool confirmed=scope.Known && scope.Allowed && input.Tick<=scope.Checked;
-                bool expired=!next.NativeSafe && !confirmed && input.Kind!=3 && ((now>=input.Tick && now-input.Tick>2500) || finish);
+                bool deferred=scope.End==0 && scope.DeferredUntil!=0 && now<=scope.DeferredUntil;
+                bool expired=!next.NativeSafe && !confirmed && input.Kind!=3 && ((now>=input.Tick && now-input.Tick>2500 && !deferred) || finish);
                 bool retired=!next.NativeSafe && input.Kind!=3 && scope.End!=0 && !scope.Known;
                 bool settled=scope.Known || next.StableField!=null || (input.Flags&24)==24 || (now>=input.Tick && now-input.Tick>=350) || finish;
                 bool allowed=(next.NativeSafe && settled) || input.Kind==3 || (scope.Known && scope.Allowed && input.Tick<=scope.Checked);

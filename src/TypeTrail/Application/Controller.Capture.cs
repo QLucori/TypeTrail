@@ -42,14 +42,56 @@ namespace TypeTrail {
                 ApplyFocus(foreground,focused,false,0,0);EnsureProtectionFocus(foreground,focused,owner,Native.GetTickCount64(),false);
             }
             bool commitHint = lastImeCommit != 0 && (Stopwatch.GetTimestamp() - lastImeCommit) / (double)Stopwatch.Frequency < 2;
-            pending = true; requestedAt = lastRequest = DateTime.UtcNow; focusDirty = false;
+            pending = true; requestedAt = lastRequest = DateTime.UtcNow; requestedWindow=foreground; focusDirty = false;
             var inputGui=new Native.GUITHREADINFO {cbSize=Marshal.SizeOf(typeof(Native.GUITHREADINFO))};
             IntPtr inputFocus=Native.GetGUIThreadInfo(thread,ref inputGui)&&inputGui.hwndFocus!=IntPtr.Zero?inputGui.hwndFocus:foreground;
             var activity=keyboardActivity.ForRequest(owner,unchecked((ulong)foreground.ToInt64()),unchecked((ulong)inputFocus.ToInt64()),protectionEpoch,fieldAdmission.FieldFor(protectionEpoch),Native.GetTickCount64(),fieldAdmission.FieldFor,fieldAdmission.IsDenied);
-            var request = new CaptureRequest { InputActivity=activity, ProtectionEpoch=protectionEpoch, MetadataOnly=pendingPaste==null, Id = ++requestId, ParentPid = pid, Epoch = epoch, Active = InputActive(), InputSerial = inputSerial, FocusSerial = focusSerial, CanInsert = inputCanInsert, ExcludedApps = settings.ExcludedApps, MaxChars = Math.Max(50000, Math.Min(500000, settings.CharacterLimit)), Flush = flush, TargetWindow = Native.GetForegroundWindow().ToInt64(), ImeCommitHint = commitHint };
+            var request = new CaptureRequest { InputActivity=activity, ProtectionEpoch=protectionEpoch, MetadataOnly=pendingPaste==null, Id = ++requestId, ParentPid = pid, Epoch = epoch, Active = InputActive(), InputSerial = inputSerial, FocusSerial = focusSerial, CanInsert = inputCanInsert, ExcludedApps = settings.ExcludedApps, MaxChars = Math.Max(50000, Math.Min(500000, settings.CharacterLimit)), Flush = flush, TargetWindow = foreground.ToInt64(), ImeCommitHint = commitHint };
             if (flush) popupFlushId = request.Id;
-            try { workerInput.WriteLine(json.Serialize(request)); workerInput.Flush(); }
-            catch { StopWorker(); if (flush) popupFlushId = 0; }
+            QueueCaptureRequest(request);
+        }
+        void QueueCaptureRequest(CaptureRequest request) {
+            try {
+                Process running=worker;StreamWriter input=workerInput;string line=json.Serialize(request);
+                // A provider can stop reading its pipe during UIA/COM calls.
+                // Never make the dispatcher (and all native input drains) wait
+                // for that process to accept even a single request.
+                if(!ThreadPool.QueueUserWorkItem(delegate {
+                    try {
+                        lock(input) {
+                            if(disposed || running!=Interlocked.CompareExchange(ref worker,null,null))return;
+                            input.WriteLine(line);input.Flush();
+                        }
+                    } catch {
+                        try {ui.BeginInvoke(new Action(delegate {
+                            if(disposed || running!=worker)return;
+                            StopWorker();if(request.Flush)popupFlushId=0;
+                        }));}catch(InvalidOperationException){}
+                    }
+                }))throw new InvalidOperationException("Capture transport unavailable");
+            }
+            catch { StopWorker(); if (request.Flush) popupFlushId = 0; }
+        }
+        void RecoverCaptureWorker() {
+            if(requestedWindow==IntPtr.Zero || worker==null || exitPending)return;
+            IntPtr foreground=Native.GetForegroundWindow();uint owner;
+            Native.GetWindowThreadProcessId(foreground,out owner);
+            // Give a healthy in-flight read a short chance to finish. A bounded
+            // retirement also applies if focus returns while its drain stalls.
+            if(pending && (DateTime.UtcNow-requestedAt).TotalMilliseconds<250)return;
+            if(!retiringWorker && (foreground==IntPtr.Zero || foreground==requestedWindow || owner==0 || owner==(uint)pid))return;
+            if(!pending && !retiringWorker) {
+                // Collect already-confirmed callbacks before discarding the
+                // old provider's COM cache. This request performs no UIA reads,
+                // even if focus returns to that application during the drain.
+                retiringWorker=true;pending=true;requestedAt=DateTime.UtcNow;
+                QueueCaptureRequest(new CaptureRequest {DrainOnly=true,Id=++requestId,ParentPid=pid,Epoch=epoch,TargetWindow=requestedWindow.ToInt64(),FocusSerial=focusSerial,InputSerial=inputSerial});
+                return;
+            }
+            Trace("worker preempted stale-window="+requestedWindow+" current-window="+foreground);
+            StopWorker();focusDirty=true;lastRequest=DateTime.MinValue;
+            if(popupPending)popupFlushId=0;
+            StartWorker();
         }
         void StartWorker() {
             if (disposed || settings.Paused || !liveCapture) return;
@@ -64,6 +106,12 @@ namespace TypeTrail {
                         ui.BeginInvoke(new Action(delegate {
                             if (disposed || running != worker) return;
                             pending = false;
+                            if(retiringWorker) {
+                                if(sample.Epoch==epoch && !settings.Paused && sample.Commits!=null && sample.Commits.Count>0)Receive(sample);
+                                StopWorker();focusDirty=true;lastRequest=DateTime.MinValue;
+                                if(popupPending)popupFlushId=0;
+                                StartWorker();return;
+                            }
                             if (sample.Epoch != epoch || settings.Paused) return;
                             Receive(sample);
                             if(exitPending && sample.Id==exitFlushId) { FinishExit();return; }
@@ -77,7 +125,7 @@ namespace TypeTrail {
         }
         void StopWorker() {
             history.ResetSession();
-            Process old = worker; worker = null; pending = false;
+            Process old = worker; worker = null; workerInput=null; pending = false; retiringWorker=false; requestedWindow=IntPtr.Zero;
             if (old != null) { try { if (!old.HasExited) old.Kill(); } catch {} try { old.Dispose(); } catch {} }
         }
         void Receive(Sample sample) {
@@ -162,6 +210,9 @@ namespace TypeTrail {
             else if(nativeCapture.Error!=null && captureState!="partial") {captureStatus=nativeCapture.Error;captureState="capture_error";}
             else if(nativeCapture.Error==null && captureState=="capture_error" && (keyboardMonitor==null || keyboardMonitor.Error==null)) {
                 captureStatus=L.T("输入监听已恢复，等待输入");captureState="idle";
+            }
+            if(captureState!="partial" && nativeCapture.Error==null && (keyboardMonitor==null || keyboardMonitor.Error==null) && fieldAdmission.IsDeferred(protectionEpoch,Native.GetTickCount64())) {
+                captureStatus=L.T("输入窗口响应较慢，未确认的文字暂存在内存中，正在重试");captureState="confirming";
             }
         }
         void PrepareCapture() {if(liveCapture){nativeCapture.Prewarm(settings);nativeCapture.Refresh(settings,true);}}

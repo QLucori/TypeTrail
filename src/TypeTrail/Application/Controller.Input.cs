@@ -160,6 +160,7 @@ namespace TypeTrail {
             DrainAdmitted();
         }
         void DrainAdmitted(bool finish=false) {
+            if(!finish)fieldAdmission.DeferPending(protectionEpoch,Native.GetTickCount64());
             foreach(var item in fieldAdmission.Drain(Native.GetTickCount64(),finish)) {
                 string key=item.Input.ProcessId+":"+item.Input.Window;
                 var nativeClass=new StringBuilder(256);Native.GetClassName(new IntPtr(unchecked((long)item.Input.Window)),nativeClass,nativeClass.Capacity);bool rich;

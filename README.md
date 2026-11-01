@@ -48,7 +48,7 @@ Delete part of a draft, clear it, then recover it after a page refresh. This edi
 
 ## Install and use
 
-Download `TypeTrail-Setup-1.0.1-x64.exe` from this repository's **Releases** page. You need **Windows 10 / 11 x64**. Input from supported 32-bit apps is included. This release is for Windows only.
+Download `TypeTrail-Setup-1.0.2-x64.exe` from this repository's **Releases** page. You need **Windows 10 / 11 x64**. Input from supported 32-bit apps is included. This release is for Windows only.
 
 You also need **.NET Framework 4.8 or later**. If the installer says it's missing, install the [official Microsoft runtime](https://dotnet.microsoft.com/download/dotnet-framework/net48), then run the TypeTrail installer again.
 
@@ -177,7 +177,7 @@ for missing, duplicate and unlisted files.
 powershell.exe -NoProfile -File .\installer\build-installer.ps1 -CompilerPath C:\path\to\ISCC.exe
 ```
 
-Output: `dist/TypeTrail-Setup-1.0.1-x64.exe`. To use a different app output folder,
+Output: `dist/TypeTrail-Setup-1.0.2-x64.exe`. To use a different app output folder,
 pass `-PayloadDirectory`; use `-OutputDirectory` for the installer destination.
 Intermediate files are kept in `.build/installer/`.
 

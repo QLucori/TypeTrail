@@ -4,7 +4,7 @@ Build the application first, then run:
   powershell.exe -NoProfile -File installer\build-installer.ps1 -CompilerPath C:\path\to\ISCC.exe
 
 Requires Inno Setup 7.1.0. Default input: bin/.
-Output: dist/TypeTrail-Setup-1.0.1-x64.exe. Intermediate: .build/installer/.
+Output: dist/TypeTrail-Setup-1.0.2-x64.exe. Intermediate: .build/installer/.
 The two user guides are taken from docs/ unless supplied in the payload.
 Only explicitly listed runtime files, user guides and the Unicode license are
 packaged. Personal history, settings and credentials must never be included.

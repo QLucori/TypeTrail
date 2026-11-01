@@ -48,7 +48,7 @@
 
 ## 安装和使用
 
-从本仓库的 **Releases** 页面下载 `TypeTrail-Setup-1.0.1-x64.exe`。需要 **Windows 10 / 11 x64**，也支持部分 32 位应用中的输入。本次只发布 Windows 版。
+从本仓库的 **Releases** 页面下载 `TypeTrail-Setup-1.0.2-x64.exe`。需要 **Windows 10 / 11 x64**，也支持部分 32 位应用中的输入。本次只发布 Windows 版。
 
 运行需要 **.NET Framework 4.8 或更高版本**。如果安装器提示缺少运行环境，请先安装 [Microsoft 官方运行时](https://dotnet.microsoft.com/download/dotnet-framework/net48)，再运行拾字安装包。
 
@@ -166,7 +166,7 @@ powershell.exe -NoProfile -File .\build.ps1
 powershell.exe -NoProfile -File .\installer\build-installer.ps1 -CompilerPath C:\path\to\ISCC.exe
 ```
 
-输出为 `dist/TypeTrail-Setup-1.0.1-x64.exe`。如需指定应用编译产物所在目录，
+输出为 `dist/TypeTrail-Setup-1.0.2-x64.exe`。如需指定应用编译产物所在目录，
 传入 `-PayloadDirectory`；安装包输出目录使用 `-OutputDirectory` 指定。
 中间文件位于 `.build/installer/`。
 

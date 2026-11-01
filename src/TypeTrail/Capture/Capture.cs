@@ -26,25 +26,28 @@ namespace TypeTrail {
             while ((line = Console.ReadLine()) != null) {
                 try {
                     var request = Json.Deserialize<CaptureRequest>(line);
-                    var result = Read(request);
-                    if (request.Flush) {
-                        // Give TSF and asynchronous browser accessibility updates a short
-                        // opportunity to publish the committed text before the popup takes focus.
-                        Thread.Sleep(70);
-                        var latest = Read(request);
-                        result = CommittedCapture.Merge(result, latest);
-                    }
-                    result.Id = request.Id; result.Epoch = request.Epoch; result.Active = request.Active; result.ImeCommitHint = request.ImeCommitHint;
-                    result.InputSerial = request.InputSerial; result.FocusSerial = request.FocusSerial; result.CanInsert = request.CanInsert;
-                    ProtectionMetadata.Attach(result,request);
-                    result.CommitOverflow = Ime.CommitOverflow;
-                    if (request.Diagnostics) result.Diagnostic = DescribeFocus();
+                    var result = ReadRequest(request);
                     Console.WriteLine(Json.Serialize(result)); Console.Out.Flush();
                 } catch { Console.WriteLine("{\"Status\":\"unavailable\"}"); Console.Out.Flush(); }
             }
             watchdog.Dispose();
             Ime.Dispose();
             Office.Dispose();
+        }
+        static Sample ReadRequest(CaptureRequest request) {
+            var result = request.DrainOnly ? CommittedCapture.Sample(Ime.TakeCommittedInputs()) ?? State("idle", "") : Read(request);
+            if (request.Flush && !request.DrainOnly) {
+                // Give asynchronous finalizations a chance to arrive before
+                // the popup takes focus. Retiring a provider never reads it.
+                Thread.Sleep(70);
+                result = CommittedCapture.Merge(result, Read(request));
+            }
+            result.Id = request.Id; result.Epoch = request.Epoch; result.Active = request.Active; result.ImeCommitHint = request.ImeCommitHint;
+            result.InputSerial = request.InputSerial; result.FocusSerial = request.FocusSerial; result.CanInsert = request.CanInsert;
+            if(!request.DrainOnly)ProtectionMetadata.Attach(result,request);
+            result.CommitOverflow = Ime.CommitOverflow;
+            if (request.Diagnostics && !request.DrainOnly) result.Diagnostic = DescribeFocus();
+            return result;
         }
         static Sample State(string status, string source) { return new Sample { Status = status, Source = source }; }
         static string DescribeFocus() {

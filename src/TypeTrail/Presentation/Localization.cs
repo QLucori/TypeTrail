@@ -22,6 +22,8 @@ namespace TypeTrail {
             { "输入监听暂不可用（", "Input capture is temporarily unavailable (" },
             { "当前应用的输入线程暂不可访问", "The current app's input thread is temporarily inaccessible" },
             { "输入窗口响应较慢，部分末尾文字尚未确认", "The input window is slow; some trailing text has not been confirmed" },
+            { "等待确认", "Awaiting confirmation" },
+            { "输入窗口响应较慢，未确认的文字暂存在内存中，正在重试", "The input window is slow. Unconfirmed text is held in memory while TypeTrail retries." },
             { "收起到后台 · Esc", "Hide to background · Esc" },
             { "搜索文字或应用…", "Search words or apps…" },
             { "最近输入", "Recent input" },

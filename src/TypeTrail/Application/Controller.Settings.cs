@@ -56,8 +56,8 @@ namespace TypeTrail {
             if (pauseMenu != null) pauseMenu.Text = settings.Paused ? L.T("恢复记录") : L.T("暂停记录");
             if (window == null) return;
             var button = Find<Button>("PauseButton");
-            bool warning = captureState == "partial" || captureState == "capture_error" || captureState == "unsupported_input" || captureState == "office_unavailable" || captureState == "unavailable" || captureState == "uncertain_input";
-            string label = captureState == "partial" ? L.T("记录不完整") : captureState == "capture_error" ? L.T("监听受限") : warning ? L.T("当前未记录") : captureState == "protected" || captureState == "excluded" ? L.T("已跳过") : captureState == "composing" ? L.T("等待选词") : captureState == "ok" ? L.T("正在记录") : L.T("等待输入");
+            bool warning = captureState == "partial" || captureState == "capture_error" || captureState == "confirming" || captureState == "unsupported_input" || captureState == "office_unavailable" || captureState == "unavailable" || captureState == "uncertain_input";
+            string label = captureState == "partial" ? L.T("记录不完整") : captureState == "capture_error" ? L.T("监听受限") : captureState == "confirming" ? L.T("等待确认") : warning ? L.T("当前未记录") : captureState == "protected" || captureState == "excluded" ? L.T("已跳过") : captureState == "composing" ? L.T("等待选词") : captureState == "ok" ? L.T("正在记录") : L.T("等待输入");
             button.ToolTip = L.Rewrite(nativeCapture.Warning ?? captureStatus);
             button.Content = settings.Paused ? L.T("Ⅱ  已暂停") : "●  " + label;
             button.SetResourceReference(Button.BackgroundProperty, settings.Paused || warning ? "ThemeWarning" : "ThemePositive");

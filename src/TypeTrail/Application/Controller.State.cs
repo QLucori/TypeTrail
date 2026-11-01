@@ -88,6 +88,8 @@ namespace TypeTrail {
         DateTime popupDeadline;
         Process worker;
         StreamWriter workerInput;
+        IntPtr requestedWindow;
+        bool retiringWorker;
         bool pending, disposed, dirty, recordingHotkey, refreshing, migrationBlocked;
         DateTime requestedAt, lastRequest, lastSave, lastUi, clearArmed;
         DateTime nextHistoryRetry, lastSuccessfulHistorySave, nextHistoryState;

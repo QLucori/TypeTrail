@@ -1,6 +1,6 @@
-﻿TypeTrail 1.0.1 — Windows x64, including 32-bit input applications
+﻿TypeTrail 1.0.2 — Windows x64, including 32-bit input applications
 
-Install TypeTrail-Setup-1.0.1-x64.exe, or run TypeTrail.exe from the portable folder.
+Install TypeTrail-Setup-1.0.2-x64.exe, or run TypeTrail.exe from the portable folder.
 Requires .NET Framework 4.8 or later. Install the official Microsoft runtime if prompted.
 Alt + ` opens or hides history; the tray icon also opens it.
 The theme button switches light/dark mode. The globe menu offers English and Chinese.

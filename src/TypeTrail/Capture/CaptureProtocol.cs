@@ -39,6 +39,7 @@ namespace TypeTrail {
     }
     public sealed class CaptureRequest {
         public bool MetadataOnly;
+        public bool DrainOnly;
         public InputActivityStamp[] InputActivity;
         public long ProtectionEpoch;
         public long InputSerial;

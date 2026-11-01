@@ -103,6 +103,7 @@ namespace TypeTrail {
             if (disposed) return;
             RetryHistoryLoad();
             DrainKeyboardInput();
+            RecoverCaptureWorker();
             RefreshNativeCapture(false);
             if ((DateTime.UtcNow - nativeTraced).TotalSeconds > 3) { nativeTraced = DateTime.UtcNow; Trace("native targets=" + nativeCapture.Targets + " stats=" + String.Join(",", nativeCapture.Diagnostics) + " error=" + nativeCapture.Error); }
             nativeCapture.Drain(ReceiveCommitted);
